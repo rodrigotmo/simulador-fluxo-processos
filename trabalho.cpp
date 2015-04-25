@@ -14,7 +14,7 @@ struct Processo {
     int numeroCiclosBloqueado;
 };
 
-//=================Vari·veis Globais==========================================
+//=================Vari√°veis Globais==========================================
 
 int criacao = 1, apto = 2, execucao = 3, bloqueado = 4, destruicao = 5;
 int contadorDeProcessos = 0;
@@ -41,11 +41,6 @@ void criaProcesso() {
     processoCriado.estado = apto;
     filaAptos.push_back(processoCriado);
 }
-
-//void removerEColocarEmOutraLista(vector<Processo> inserirNesse, vector<Processo> removerDeste) {
-//    inserirNesse.insert(inserirNesse.begin(), removerDeste.front());
-//    removerDeste.erase(removerDeste.front());
-//}
 
 void simulador(int numeroMaximoProcessos) {
     do {
@@ -109,27 +104,16 @@ void simulador(int numeroMaximoProcessos) {
 //                        }
                 }
             }
-            if (executando[0].estado != bloqueado) {
+            if ((executando.size() > 0) && (executando[0].estado != bloqueado)) {
                 executando[0].estado = apto;
                 filaAptos.push_back(executando[0]);
                 executando.erase(executando.begin());
             }
-//            if (numeroCiclosRodado != 0) {
-//                arrayProcesso[0].numeroCiclos = arrayProcesso[0].numeroCiclos - numeroCiclosRodado;
-//                arrayProcesso[0].numeroCiclosBloqueado = arrayProcesso[0].numeroCiclosBloqueado - numeroCiclosRodadoBloqueado;
-//            } else {
-//                arrayProcesso[0].numeroCiclosBloqueado = arrayProcesso[0].numeroCiclosBloqueado - numeroCiclosRodadoBloqueado;
-//            }
         }
     } while(processosDestruidos < numeroMaximoProcessos);
-    cout << "Numero total de processos criados: " << contadorDeProcessos;
-    cout << "Numero total de ciclos: " << numeroTotalDeCiclos;
+    cout << "Numero total de processos criados: " << contadorDeProcessos << endl;
+    cout << "Numero total de ciclos: " << numeroTotalDeCiclos << endl;
     cout << "Numero ciclos medio por ciclo: " << numeroTotalDeCiclos/contadorDeProcessos << endl;
-//    int contador = 0;
-//    for (int i = 0; i < filaAptos.size(); i++) {
-//        contador++;
-//        printf("Tamanho filaAptos: %i\n", contador);
-//    }
 }
 
 int main(void){
