@@ -22,8 +22,10 @@ int processosDestruidos = 0;
 int numeroTotalDeCiclos = 0;
 int numeroCiclosRodado = 0;
 int numeroCiclosRodadoBloqueado = 0;
+vector<Processo> executando;
 vector<Processo> filaAptos;
 vector<Processo> filaBloqueados;
+vector<Processo> listaDestruidos;
 
 //=============================================================================
 
@@ -37,71 +39,80 @@ void criaProcesso() {
     numeroTotalDeCiclos++;
     processoCriado.numeroCiclos = processoCriado.numeroCiclos - 1;
     processoCriado.estado = apto;
-    filaAptos[contadorDeProcessos-1] = processoCriado;
+    filaAptos.push_back(processoCriado);
 }
+
+//void removerEColocarEmOutraLista(vector<Processo> inserirNesse, vector<Processo> removerDeste) {
+//    inserirNesse.insert(inserirNesse.begin(), removerDeste.front());
+//    removerDeste.erase(removerDeste.front());
+//}
 
 void simulador(int numeroMaximoProcessos) {
     do {
         int chanceNovoProcesso = rand() % 100;
-        if (((chanceNovoProcesso > 0) && (chanceNovoProcesso <= 20)) && (contadorDeProcessos != numeroMaximoProcessos)) {
+        if (((chanceNovoProcesso > 0) && (chanceNovoProcesso <= 20)) && (contadorDeProcessos < numeroMaximoProcessos)) {
             criaProcesso();
         }
-        if (arrayProcesso[0].numeroCiclos != 0) {
+        if ((filaAptos.size() > 0) && (filaAptos[0].numeroCiclos > 0)) {
+            executando.insert(executando.begin(), filaAptos.front());
+            filaAptos.erase(filaAptos.begin());
             numeroCiclosRodado = 0;
             numeroCiclosRodadoBloqueado = 0;
             for (int i = 0; i < 50; i++) {
-                if (arrayProcesso[0].numeroCiclos == 0 ) {
-                    arrayProcesso[0].estado = destruicao;
+                if (executando[0].numeroCiclos == 0 ) {
+                    executando[0].estado = destruicao;
                     processosDestruidos++;
-                    printf("\ndestruido!\n");
+                    listaDestruidos.insert(listaDestruidos.begin(), executando.front());
+                    executando.erase(executando.begin());
+                    cout << "Destruido" << endl;
                     break;
                 } else {
-                    if (arrayProcesso[0].estado == bloqueado) {
-                        if (arrayProcesso[0].numeroCiclosBloqueado == 0) {
-                            arrayProcesso[0].estado = apto;
-                            printf("Agora esta apto!\n");
-                        } else {
-                            printf("PID do processo: %i - ", arrayProcesso[0].pid);
-                            printf("Estado do processo: %i - ", arrayProcesso[0].estado);
-                            printf("Processador livre! Numero total de ciclos: %i ", numeroTotalDeCiclos);
-                            printf("Processo Bloqueado por %i ciclos! \n", arrayProcesso[0].numeroCiclosBloqueado);
-                            arrayProcesso[0].numeroCiclosBloqueado--;
+//                        if (executando[0].estado == bloqueado) {
+//                            if (executando[0].numeroCiclosBloqueado == 0) {
+//                                executando[0].estado = apto;
+//                                printf("Agora esta apto!\n");
+//                            } else {
+//                                printf("PID do processo: %i - ", executando[0].pid);
+//                                printf("Estado do processo: %i - ", executando[0].estado);
+//                                printf("Processador livre! Numero total de ciclos: %i ", numeroTotalDeCiclos);
+//                                printf("Processo Bloqueado por %i ciclos! \n", executando[0].numeroCiclosBloqueado);
+//                                executando[0].numeroCiclosBloqueado--;
+//                                numeroTotalDeCiclos++;
+//                                Sleep(50);
+//                            }
+//                        } else {
+                        if (executando[0].estado == apto) {
+                            executando[0].estado = execucao;
+                            cout << "PID do processo: " <<  executando[0].pid << " - ";
+                            cout << "Estado do processo: " << executando[0].estado << " - ";
+                            cout << "Numero ciclos: " << executando[0].numeroCiclos << " - ";
+                            cout << "Numero total de ciclos: " << numeroTotalDeCiclos << endl;
+//                                int chanceES = rand() % 100;
+//                                int dispositivo = rand() % 3;
+//                                if (chanceES == 1) {
+//                                    printf("chamou ES\n");
+//                                    executando[0].estado = bloqueado;
+//                                    if (dispositivo == 1) {
+//                                        executando[0].numeroCiclosBloqueado = 20;
+//                                    } else {
+//                                        if (dispositivo == 2) {
+//                                            executando[0].numeroCiclosBloqueado = 10;
+//                                        } else {
+//                                            executando[0].numeroCiclosBloqueado = 60;
+//                                        }
+//                                    }
+//                                }
+                            executando[0].numeroCiclos--;
                             numeroTotalDeCiclos++;
                             Sleep(50);
                         }
-                    } else {
-                        if (processos[0].estado == apto) {
-                            arrayProcesso[0].estado = execucao;
-                            printf("PID do processo: %i - ", arrayProcesso[0].pid);
-                            printf("Estado do processo: %i - ", arrayProcesso[0].estado);
-                            printf("Numero ciclos: %i ", arrayProcesso[0].numeroCiclos);
-                            printf("Numero total de ciclos: %i \n", numeroTotalDeCiclos);
-                            int chanceES = rand() % 100;
-                            int dispositivo = rand() % 3;
-                            if (chanceES == 1) {
-                                printf("chamou ES\n");
-                                arrayProcesso[0].estado = bloqueado;
-                                if (dispositivo == 1) {
-                                    arrayProcesso[0].numeroCiclosBloqueado = 20;
-                                } else {
-                                    if (dispositivo == 2) {
-                                        arrayProcesso[0].numeroCiclosBloqueado = 10;
-                                    } else {
-                                        arrayProcesso[0].numeroCiclosBloqueado = 60;
-                                    }
-                                }
-                            }
-                            arrayProcesso[0].numeroCiclos--;
-                            numeroTotalDeCiclos++;
-                            Sleep(50);
-                        }
-                    }
+//                        }
                 }
             }
-            //printf("50 ciclos!\n");
-            if (processos[0].estado != bloqueado) {
-                //printf("Agora esta APTO! \n");
-                processos[0].estado = apto;
+            if (executando[0].estado != bloqueado) {
+                executando[0].estado = apto;
+                filaAptos.push_back(executando[0]);
+                executando.erase(executando.begin());
             }
 //            if (numeroCiclosRodado != 0) {
 //                arrayProcesso[0].numeroCiclos = arrayProcesso[0].numeroCiclos - numeroCiclosRodado;
@@ -110,32 +121,20 @@ void simulador(int numeroMaximoProcessos) {
 //                arrayProcesso[0].numeroCiclosBloqueado = arrayProcesso[0].numeroCiclosBloqueado - numeroCiclosRodadoBloqueado;
 //            }
         }
-    } while(processosDestruidos != numeroMaximoProcessos);
-    system("cls");
-    printf("Numero total de processos criados: %i\n", contadorDeProcessos);
-    printf("Numero total de ciclos: %i\n", numeroTotalDeCiclos);
-    printf("Numero ciclos medio por ciclo: %i\n", numeroTotalDeCiclos/contadorDeProcessos);
-    for (int i = 0; i < 5; i++) {
-        int contador = 0;
-        if (filaAptos[i].processo) {
-            contador++;
-        }
-        printf("Tamanho filaAptos: %i\n", contador);
-    }
+    } while(processosDestruidos < numeroMaximoProcessos);
+    cout << "Numero total de processos criados: " << contadorDeProcessos;
+    cout << "Numero total de ciclos: " << numeroTotalDeCiclos;
+    cout << "Numero ciclos medio por ciclo: " << numeroTotalDeCiclos/contadorDeProcessos << endl;
+//    int contador = 0;
+//    for (int i = 0; i < filaAptos.size(); i++) {
+//        contador++;
+//        printf("Tamanho filaAptos: %i\n", contador);
+//    }
 }
 
 int main(void){
     int numero;
-    scanf("%i", &numero);
-    //scanf("%i", &tempo);
-    getchar();
-//    Processo processoCriado;
-//    srand((unsigned)time(NULL));
-//    int n = 100 + (rand() % 200);
-//    processoCriado.numeroCiclos = n;
-//    processoCriado.pid = 1;
-//    processos[0] = processoCriado;
-
+    cin >> numero;
     srand((unsigned)time(NULL));
     simulador(numero);
 }
