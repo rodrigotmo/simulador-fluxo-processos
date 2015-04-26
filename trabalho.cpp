@@ -7,226 +7,262 @@
 
 using namespace std;
 
+//========= Estrutura do processo ============
 struct Processo {
     int pid;
     int estado;
+    int numeroCiclosPermitidosNoProcessador;
     int numeroCiclos;
+    int numeroCiclosTotal;
     int numeroCiclosBloqueado;
+    int numeroCiclosBloqueadoTotal;
+    int numeroCiclosNaFilaAptos;
+    bool passouPorCriacao;
+    bool passouPorApto;
+    bool passouPorExecucao;
+    bool passouPorBloqueado;
+    bool passouPorDestruido;
 };
 
-//=================Variáveis Globais==========================================
+//============================================
+
+//================= Variáveis Globais ==========================================
 
 int criacao = 1, apto = 2, execucao = 3, bloqueado = 4, destruicao = 5;
+int HD = 1, video = 2, impressora = 3;
 int contadorDeProcessos = 0;
-int processosDestruidos = 0;
 int numeroTotalDeCiclos = 0;
-int numeroCiclosRodado = 0;
 int numeroCiclosRodadoBloqueado = 0;
-vector<Processo> executando;
+int contadorEstadoCriacao = 0;
+int contadorEstadoApto = 0;
+int contadorEstadoExecucao = 0;
+int contadorEstadoBloqueado = 0;
+int contadorEstadoDestruido = 0;
+int contadorDevolvidosParaAptos = 0;
+int contadorTempoEsperaFilaAptos = 0;
+int contadorTempoExecucaoProcesso = 0;
+
+vector<Processo> processador;
 vector<Processo> filaAptos;
-vector<Processo> filaBloqueados;
+vector<Processo> filaHD;
+vector<Processo> filaVideo;
+vector<Processo> filaImpressora;
 vector<Processo> listaDestruidos;
 
 //=============================================================================
 
 void criaProcesso() {
     contadorDeProcessos++;
+
     Processo processoCriado;
-    processoCriado.numeroCiclos = 100 + (rand() % 200);
-    processoCriado.numeroCiclosBloqueado = 0;
+
     processoCriado.pid = contadorDeProcessos;
+    processoCriado.numeroCiclosTotal = 100 + (rand() % 200);
+    processoCriado.numeroCiclos = processoCriado.numeroCiclosTotal;
+    processoCriado.numeroCiclosBloqueadoTotal = 0;
+    processoCriado.numeroCiclosBloqueado = 0;
+    processoCriado.numeroCiclosNaFilaAptos = 0;
     processoCriado.estado = criacao;
-    numeroTotalDeCiclos++;
-    processoCriado.numeroCiclos = processoCriado.numeroCiclos - 1;
+    processoCriado.numeroCiclos = processoCriado.numeroCiclos - 1; //Primeiro ciclo é sempre de CPU
+    processoCriado.passouPorCriacao = true;
+
     processoCriado.estado = apto;
     filaAptos.push_back(processoCriado);
 }
 
-//void removerEColocarEmOutraLista(vector<Processo> inserirNesse, vector<Processo> removerDeste) {
-//    inserirNesse.insert(inserirNesse.begin(), removerDeste.front());
-//    removerDeste.erase(removerDeste.front());
-//}
+void simulador(int numeroMaximoProcessos, int tempoEspera) {
+    while (true) {
 
-void simulador(int numeroMaximoProcessos) {
-    do {
         int chanceNovoProcesso = rand() % 100;
         if (((chanceNovoProcesso > 0) && (chanceNovoProcesso <= 20)) && (contadorDeProcessos < numeroMaximoProcessos)) {
             criaProcesso();
         }
-        if ((filaAptos.size() > 0) && (filaAptos[0].numeroCiclos > 0)) {
-            executando.insert(executando.begin(), filaAptos.front());
+
+        //===== Contador de ciclos na fila de Aptos ==========================
+        if (filaAptos.size() > 0) {
+            for (int i = 0; i < filaAptos.size(); i++) {
+                filaAptos[i].numeroCiclosNaFilaAptos++;
+            }
+        }
+
+        //===== Finalização da execução do simulador ==========================
+        if (listaDestruidos.size() == numeroMaximoProcessos) {
+            cout << "Processos destruidos: " << listaDestruidos.size() << endl;
+            break;
+        }
+
+        //===== Insere o primeiro da fila de Aptos para o processador =======================
+        if ((filaAptos.size() > 0) && (processador.size() == 0)) {
+
+            cout << "Foi enviado para o processador o processo: " << filaAptos[0].pid << endl;
+            filaAptos[0].passouPorApto = true;
+            processador.push_back(filaAptos.front());
             filaAptos.erase(filaAptos.begin());
-            numeroCiclosRodado = 0;
-            numeroCiclosRodadoBloqueado = 0;
-            for (int i = 0; i < 50; i++) {
-                if (executando[0].numeroCiclos == 0 ) {
-                    executando[0].estado = destruicao;
-                    processosDestruidos++;
-                    listaDestruidos.insert(listaDestruidos.begin(), executando.front());
-                    executando.erase(executando.begin());
-                    cout << "Destruido" << endl;
-                    break;
+            processador[0].estado = execucao;
+            processador[0].numeroCiclosPermitidosNoProcessador = 50;
+            processador[0].passouPorExecucao = true;
+
+        }
+
+        //===== Destruicao do processo caso ele tenha chegado ao seu fim ====
+        if ((processador.size() > 0) && (processador[0].numeroCiclos == 0)) {
+
+            processador[0].estado = destruicao;
+            processador[0].passouPorDestruido = true;
+            listaDestruidos.push_back(processador.front());
+            processador.erase(processador.begin());
+            cout << "Processo " << processador[0].pid << " destruido" << endl;
+        }
+
+        //===== Processador ======================================================================================================================
+        if (processador.size() > 0) {
+            cout << "PID do processo: " <<  processador[0].pid << " - ";
+            cout << "Estado do processo: " << processador[0].estado << " - ";
+            cout << "Numero ciclos restantes: " << processador[0].numeroCiclos << " - ";
+            cout << "Numero total de ciclos: " << numeroTotalDeCiclos << endl;
+
+            int chanceES = rand() % 100;
+            int dispositivo = rand() % 3;
+
+            if (chanceES == 1) {
+                processador[0].estado = bloqueado;
+                if (dispositivo == HD) {
+
+                    processador[0].numeroCiclosBloqueado = 200 + (rand() % 100);
+                    processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
+                    cout << "Processo " << processador[0].pid <<  " requisitou HD" << endl;
+                    filaHD.push_back(processador.front());
+                    processador.erase(processador.begin());
+
                 } else {
-//                        if (executando[0].estado == bloqueado) {
-//                            if (executando[0].numeroCiclosBloqueado == 0) {
-//                                executando[0].estado = apto;
-//                                printf("Agora esta apto!\n");
-//                            } else {
-//                                printf("PID do processo: %i - ", executando[0].pid);
-//                                printf("Estado do processo: %i - ", executando[0].estado);
-//                                printf("Processador livre! Numero total de ciclos: %i ", numeroTotalDeCiclos);
-//                                printf("Processo Bloqueado por %i ciclos! \n", executando[0].numeroCiclosBloqueado);
-//                                executando[0].numeroCiclosBloqueado--;
-//                                numeroTotalDeCiclos++;
-//                                Sleep(50);
-//                            }
-//                        } else {
-                        if (executando[0].estado == apto) {
-                            executando[0].estado = execucao;
-                            cout << "PID do processo: " <<  executando[0].pid << " - ";
-                            cout << "Estado do processo: " << executando[0].estado << " - ";
-                            cout << "Numero ciclos: " << executando[0].numeroCiclos << " - ";
-                            cout << "Numero total de ciclos: " << numeroTotalDeCiclos << endl;
-//                                int chanceES = rand() % 100;
-//                                int dispositivo = rand() % 3;
-//                                if (chanceES == 1) {
-//                                    printf("chamou ES\n");
-//                                    executando[0].estado = bloqueado;
-//                                    if (dispositivo == 1) {
-//                                        executando[0].numeroCiclosBloqueado = 20;
-//                                    } else {
-//                                        if (dispositivo == 2) {
-//                                            executando[0].numeroCiclosBloqueado = 10;
-//                                        } else {
-//                                            executando[0].numeroCiclosBloqueado = 60;
-//                                        }
-//                                    }
-//                                }
-                            executando[0].numeroCiclos--;
-                            numeroTotalDeCiclos++;
-                            Sleep(50);
-                        }
-//                        }
+                    if (dispositivo == video) {
+
+                        processador[0].numeroCiclosBloqueado = 100 + (rand() % 100);
+                        processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
+                        cout << "Processo " << processador[0].pid <<  " requisitou Video" << endl;
+                        filaVideo.push_back(processador.front());
+                        processador.erase(processador.begin());
+
+                    } else {
+
+                        processador[0].numeroCiclosBloqueado = 500 + (rand() % 100);
+                        processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
+                        cout << "Processo " << processador[0].pid <<  " requisitou Impressora" << endl;
+                        filaImpressora.push_back(processador.front());
+                        processador.erase(processador.begin());
+                    }
                 }
             }
-            if (executando[0].estado != bloqueado) {
-                executando[0].estado = apto;
-                filaAptos.push_back(executando[0]);
-                executando.erase(executando.begin());
-            }
-//            if (numeroCiclosRodado != 0) {
-//                arrayProcesso[0].numeroCiclos = arrayProcesso[0].numeroCiclos - numeroCiclosRodado;
-//                arrayProcesso[0].numeroCiclosBloqueado = arrayProcesso[0].numeroCiclosBloqueado - numeroCiclosRodadoBloqueado;
-//            } else {
-//                arrayProcesso[0].numeroCiclosBloqueado = arrayProcesso[0].numeroCiclosBloqueado - numeroCiclosRodadoBloqueado;
-//            }
+
+            processador[0].numeroCiclos--;
+            processador[0].numeroCiclosPermitidosNoProcessador--;
         }
-    } while(processosDestruidos < numeroMaximoProcessos);
-    cout << "Numero total de processos criados: " << contadorDeProcessos;
-    cout << "Numero total de ciclos: " << numeroTotalDeCiclos;
-    cout << "Numero ciclos medio por ciclo: " << numeroTotalDeCiclos/contadorDeProcessos << endl;
-//    int contador = 0;
-//    for (int i = 0; i < filaAptos.size(); i++) {
-//        contador++;
-//        printf("Tamanho filaAptos: %i\n", contador);
-//    }
+
+        //===== Fila da requisição do Video ==============================================================================
+        if (filaVideo.size() > 0) {
+            if (filaVideo[0].numeroCiclosBloqueado == 0) {
+
+                cout << "Foi enviado para fila aptos o processo: " << filaVideo[0].pid << endl;
+                filaVideo[0].passouPorBloqueado = true;
+                filaAptos.push_back(filaVideo.front());
+                filaVideo.erase(filaVideo.begin());
+
+            } else {
+
+                cout << "Processo " << filaVideo[0].pid << " bloqueado por " << filaVideo[0].numeroCiclosBloqueado << endl;
+                filaVideo[0].numeroCiclosBloqueado--;
+            }
+        }
+
+        //===== Fila da requisição da Impressora ===================================================================================
+        if (filaImpressora.size() > 0) {
+            if (filaImpressora[0].numeroCiclosBloqueado == 0) {
+
+                cout << "Foi enviado para fila aptos o processo: " << filaImpressora[0].pid << endl;
+                filaImpressora[0].passouPorBloqueado = true;
+                filaAptos.push_back(filaImpressora.front());
+                filaImpressora.erase(filaImpressora.begin());
+
+            } else {
+
+                cout << "Processo " << filaImpressora[0].pid << " bloqueado por " << filaImpressora[0].numeroCiclosBloqueado << endl;
+                filaImpressora[0].numeroCiclosBloqueado--;
+            }
+        }
+
+        //===== Fila da requisição do HD ============================================================================
+        if (filaHD.size() > 0) {
+            if (filaHD[0].numeroCiclosBloqueado == 0) {
+
+                cout << "Foi enviado para fila aptos o processo: " << filaHD[0].pid << endl;
+                filaHD[0].passouPorBloqueado = true;
+                filaAptos.push_back(filaHD.front());
+                filaHD.erase(filaHD.begin());
+
+            } else {
+
+                cout << "Processo " << filaHD[0].pid << " bloqueado por " << filaHD[0].numeroCiclosBloqueado << endl;
+                filaHD[0].numeroCiclosBloqueado--;
+            }
+        }
+
+        //===== Processador devolve para fila de Aptos caso o processo tenha utilizado seus 50 ciclos sem interrupções =====
+        if ((processador.size() > 0) && (processador[0].numeroCiclosPermitidosNoProcessador == 0)) {
+
+            processador[0].estado = apto;
+            contadorDevolvidosParaAptos++;
+            cout << "Processo " << processador[0].pid << " foi enviado para aptos" << endl;
+            filaAptos.push_back(processador.front());
+            processador.erase(processador.begin());
+            processador.clear();
+        }
+
+        numeroTotalDeCiclos++;
+        Sleep(50);
+        //Sleep(tempoEspera * 100);
+    } //======= Final do laço do simulador ===================================================================================
+
+
+    //========= Laço para pegar informações para o relatório final =============================================================================================
+
+    for (int i = 0; i < listaDestruidos.size(); i++) {
+        if (listaDestruidos[i].passouPorCriacao == true) {
+            contadorEstadoCriacao++;
+        }
+        if (listaDestruidos[i].passouPorApto == true) {
+            contadorEstadoApto++;
+        }
+        if (listaDestruidos[i].passouPorExecucao == true) {
+            contadorEstadoExecucao++;
+        }
+        if (listaDestruidos[i].passouPorBloqueado == true) {
+            contadorEstadoBloqueado++;
+        }
+        if (listaDestruidos[i].passouPorDestruido == true) {
+            contadorEstadoDestruido++;
+        }
+        contadorTempoEsperaFilaAptos = contadorTempoEsperaFilaAptos + listaDestruidos[i].numeroCiclosNaFilaAptos;
+        contadorTempoExecucaoProcesso = contadorTempoExecucaoProcesso + (listaDestruidos[i].numeroCiclosTotal + listaDestruidos[i].numeroCiclosBloqueadoTotal);
+    }
+
+    system("cls");
+    //======================= Relatório final ===================================================================================================
+    cout << "Numero total de processos criados: " << contadorDeProcessos << endl;;
+    cout << "Numero total de ciclos para atender todos os processos: " << numeroTotalDeCiclos << endl;
+    cout << "Numero de ciclos medio por processo: " << numeroTotalDeCiclos/contadorDeProcessos << endl;
+    cout << "Numero de processos que passaram por Criacao: " << contadorEstadoCriacao << endl;
+    cout << "Numero de processos que passaram por Apto: " << contadorEstadoApto << endl;
+    cout << "Numero de processos que passaram por Execucao: " << contadorEstadoExecucao << endl;
+    cout << "Numero de processos que passaram por Bloqueado: " << contadorEstadoBloqueado << endl;
+    cout << "Numero de processos que passaram por Destruicao: " << contadorEstadoDestruido << endl;
+    cout << "Tempo medio de espera na fila de aptos: " << contadorTempoEsperaFilaAptos/contadorDeProcessos << endl;
+    cout << "Numero de vezes que os processos foram retirados do processador e devolvidos para aptos: " << contadorDevolvidosParaAptos << endl;
 }
 
 int main(void){
-    int numero;
+    int numero, tempoEspera;
     cin >> numero;
+    cin >> tempoEspera;
     srand((unsigned)time(NULL));
-    simulador(numero);
+    simulador(numero, tempoEspera);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//int processador(Processo processoAtual) {
-//    int i;
-//    numeroCiclosRodado = 0;
-//    for (i = 0; i < 50; i++) {
-//        if (processoAtual.numeroCiclos == 0 ) {
-//            processoAtual.estado = destruicao;
-//            processosDestruidos++;
-//            printf("\ndestruido!\n");
-//            break;
-//        } else {
-//            if (processoAtual.estado == bloqueado) {
-//                if (processoAtual.numeroCiclosBloqueado == 0) {
-//                    processoAtual.estado == apto;
-//                    numeroTotalDeCiclos++;
-//                    break;
-//                } else {
-//                    printf("Processo Bloqueado por %i ciclos! ", processoAtual.numeroCiclosBloqueado);
-//                    printf("Processador livre!\n");
-//                    processoAtual.numeroCiclosBloqueado--;
-//                    numeroTotalDeCiclos++;
-//                    numeroCiclosRodadoBloqueado++;
-//                }
-//            } else {
-//                processoAtual.estado = execucao;
-//                printf("PID do processo: %i - ", processoAtual.pid);
-//                printf("Estado do processo: %i - ", processoAtual.estado);
-//                printf("Numero ciclos: %i ", processoAtual.numeroCiclos);
-//                printf("Numero total de ciclos: %i\n", numeroTotalDeCiclos);
-//                int chanceES = rand() % 100;
-//                int dispositivo = rand() % 3;
-//                if (chanceES == 1) {
-//                    printf("chamou ES\n");
-//                    processoAtual.estado = bloqueado;
-//                    if (dispositivo == 1) {
-//                        processoAtual.numeroCiclosBloqueado = 20;
-//                    } else {
-//                        if (dispositivo == 2) {
-//                            processoAtual.numeroCiclosBloqueado = 10;
-//                        } else {
-//                            processoAtual.numeroCiclosBloqueado = 60;
-//                        }
-//                    }
-//                }
-//                processoAtual.numeroCiclos--;
-//                numeroCiclosRodado++;
-//                numeroTotalDeCiclos++;
-//                Sleep(50);
-//            }
-//        }
-//    }
-//    printf("          50 ciclos\n");
-//    if (numeroCiclosRodado != 0) {
-//        return numeroCiclosRodado;
-//    } else {
-//        return numeroCiclosRodadoBloqueado;
-//    }
-//}
