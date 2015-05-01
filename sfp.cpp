@@ -272,6 +272,7 @@ void simulador(int numeroMaximoProcessos, int tempoEspera) {
 }
 
 int main(int argc, char *argv[]){
+    time_t inicio = time(0);
     string num, temp;
     int numero, tempoEspera;
     if (argc != 3) {
@@ -288,5 +289,6 @@ int main(int argc, char *argv[]){
     }
     srand((unsigned)time(NULL));
     simulador(numero, tempoEspera);
+    double finalSimulador = difftime( time(0), inicio);
     cout << "Tempo total: " << finalSimulador << " segundos" << endl;
 }
