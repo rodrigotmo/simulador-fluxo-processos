@@ -288,4 +288,5 @@ int main(int argc, char *argv[]){
     }
     srand((unsigned)time(NULL));
     simulador(numero, tempoEspera);
+    cout << "Tempo total: " << finalSimulador << " segundos" << endl;
 }
