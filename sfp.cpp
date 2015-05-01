@@ -141,33 +141,38 @@ void simulador(int numeroMaximoProcessos, int tempoEspera) {
 
         //===== Processador ======================================================================================================================
         if (processador.size() > 0) {
-            int chanceES = rand() % 100;
-            int dispositivo = rand() % 3;
+            if (processador[0].numeroCiclos == processador[0].numeroCiclosTotal) {
+                processador[0].numeroCiclos--;
+                processador[0].numeroCiclosPermitidosNoProcessador--;
+            } else {
+                int chanceES = rand() % 100;
+                int dispositivo = rand() % 3;
 
-            if (chanceES == 1) {
-                processador[0].estado = bloqueado;
-                if (dispositivo == HD) {
-                    processador[0].numeroCiclosBloqueado = 200 + (rand() % 100);
-                    processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
-                    filaHD.push_back(processador.front());
-                    processador.erase(processador.begin());
-                } else {
-                    if (dispositivo == video) {
-                        processador[0].numeroCiclosBloqueado = 100 + (rand() % 100);
+                if (chanceES == 1) {
+                    processador[0].estado = bloqueado;
+                    if (dispositivo == HD) {
+                        processador[0].numeroCiclosBloqueado = 200 + (rand() % 100);
                         processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
-                        filaVideo.push_back(processador.front());
+                        filaHD.push_back(processador.front());
                         processador.erase(processador.begin());
                     } else {
-                        processador[0].numeroCiclosBloqueado = 500 + (rand() % 100);
-                        processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
-                        filaImpressora.push_back(processador.front());
-                        processador.erase(processador.begin());
+                        if (dispositivo == video) {
+                            processador[0].numeroCiclosBloqueado = 100 + (rand() % 100);
+                            processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
+                            filaVideo.push_back(processador.front());
+                            processador.erase(processador.begin());
+                        } else {
+                            processador[0].numeroCiclosBloqueado = 500 + (rand() % 100);
+                            processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
+                            filaImpressora.push_back(processador.front());
+                            processador.erase(processador.begin());
+                        }
                     }
                 }
-            }
 
-            processador[0].numeroCiclos--;
-            processador[0].numeroCiclosPermitidosNoProcessador--;
+                processador[0].numeroCiclos--;
+                processador[0].numeroCiclosPermitidosNoProcessador--;
+            }
         }
 
         //===== Fila da requisição do Video ==============================================================================
