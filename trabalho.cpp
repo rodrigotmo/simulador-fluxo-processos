@@ -23,11 +23,9 @@ struct Processo {
     bool passouPorBloqueado;
     bool passouPorDestruido;
 };
-
 //============================================
 
-//================= Vari·veis Globais ==========================================
-
+//================= Vari√°veis Globais ==========================================
 int criacao = 1, apto = 2, execucao = 3, bloqueado = 4, destruicao = 5;
 int HD = 1, video = 2, impressora = 3;
 int contadorDeProcessos = 0;
@@ -48,10 +46,9 @@ vector<Processo> filaHD;
 vector<Processo> filaVideo;
 vector<Processo> filaImpressora;
 vector<Processo> listaDestruidos;
-
 //=============================================================================
 
-void criaProcesso() {
+void criarProcesso() {
     contadorDeProcessos++;
 
     Processo processoCriado;
@@ -63,173 +60,13 @@ void criaProcesso() {
     processoCriado.numeroCiclosBloqueado = 0;
     processoCriado.numeroCiclosNaFilaAptos = 0;
     processoCriado.estado = criacao;
-    processoCriado.numeroCiclos = processoCriado.numeroCiclos - 1; //Primeiro ciclo È sempre de CPU
     processoCriado.passouPorCriacao = true;
 
     processoCriado.estado = apto;
     filaAptos.push_back(processoCriado);
 }
 
-void simulador(int numeroMaximoProcessos, int tempoEspera) {
-    while (true) {
-
-        int chanceNovoProcesso = rand() % 100;
-        if (((chanceNovoProcesso > 0) && (chanceNovoProcesso <= 20)) && (contadorDeProcessos < numeroMaximoProcessos)) {
-            criaProcesso();
-        }
-
-        //===== Contador de ciclos na fila de Aptos ==========================
-        if (filaAptos.size() > 0) {
-            for (int i = 0; i < filaAptos.size(); i++) {
-                filaAptos[i].numeroCiclosNaFilaAptos++;
-            }
-        }
-
-        //===== FinalizaÁ„o da execuÁ„o do simulador ==========================
-        if (listaDestruidos.size() == numeroMaximoProcessos) {
-            break;
-        }
-
-        //===== Insere o primeiro da fila de Aptos para o processador =======================
-        if ((filaAptos.size() > 0) && (processador.size() == 0)) {
-            filaAptos[0].passouPorApto = true;
-            processador.push_back(filaAptos.front());
-            filaAptos.erase(filaAptos.begin());
-            processador[0].estado = execucao;
-            processador[0].numeroCiclosPermitidosNoProcessador = 50;
-            processador[0].passouPorExecucao = true;
-
-        }
-
-        //===== Destruicao do processo caso ele tenha chegado ao seu fim ====
-        if ((processador.size() > 0) && (processador[0].numeroCiclos == 0)) {
-
-            processador[0].estado = destruicao;
-            processador[0].passouPorDestruido = true;
-            listaDestruidos.push_back(processador.front());
-            processador.erase(processador.begin());
-        }
-
-        //===== Processador ======================================================================================================================
-        if (processador.size() > 0) {
-            int chanceES = rand() % 100;
-            int dispositivo = rand() % 3;
-
-            if (chanceES == 1) {
-                processador[0].estado = bloqueado;
-                if (dispositivo == HD) {
-
-                    processador[0].numeroCiclosBloqueado = 200 + (rand() % 100);
-                    processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
-                    filaHD.push_back(processador.front());
-                    processador.erase(processador.begin());
-
-                } else {
-                    if (dispositivo == video) {
-
-                        processador[0].numeroCiclosBloqueado = 100 + (rand() % 100);
-                        processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
-                        filaVideo.push_back(processador.front());
-                        processador.erase(processador.begin());
-
-                    } else {
-
-                        processador[0].numeroCiclosBloqueado = 500 + (rand() % 100);
-                        processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
-                        filaImpressora.push_back(processador.front());
-                        processador.erase(processador.begin());
-                    }
-                }
-            }
-
-            processador[0].numeroCiclos--;
-            processador[0].numeroCiclosPermitidosNoProcessador--;
-        }
-
-        //===== Fila da requisiÁ„o do Video ==============================================================================
-        if (filaVideo.size() > 0) {
-            if (filaVideo[0].numeroCiclosBloqueado == 0) {
-                filaVideo[0].passouPorBloqueado = true;
-                filaAptos.push_back(filaVideo.front());
-                filaVideo.erase(filaVideo.begin());
-
-            } else {
-                filaVideo[0].numeroCiclosBloqueado--;
-            }
-        }
-
-        //===== Fila da requisiÁ„o da Impressora ===================================================================================
-        if (filaImpressora.size() > 0) {
-            if (filaImpressora[0].numeroCiclosBloqueado == 0) {
-                filaImpressora[0].passouPorBloqueado = true;
-                filaAptos.push_back(filaImpressora.front());
-                filaImpressora.erase(filaImpressora.begin());
-
-            } else {
-                filaImpressora[0].numeroCiclosBloqueado--;
-            }
-        }
-
-        //===== Fila da requisiÁ„o do HD ============================================================================
-        if (filaHD.size() > 0) {
-            if (filaHD[0].numeroCiclosBloqueado == 0) {
-                filaHD[0].passouPorBloqueado = true;
-                filaAptos.push_back(filaHD.front());
-                filaHD.erase(filaHD.begin());
-
-            } else {
-                filaHD[0].numeroCiclosBloqueado--;
-            }
-        }
-
-        //===== Processador devolve para fila de Aptos caso o processo tenha utilizado seus 50 ciclos sem interrupÁıes =====
-        if ((processador.size() > 0) && (processador[0].numeroCiclosPermitidosNoProcessador == 0)) {
-
-            processador[0].estado = apto;
-            contadorDevolvidosParaAptos++;
-            filaAptos.push_back(processador.front());
-            processador.erase(processador.begin());
-            processador.clear();
-        }
-
-        //===== Interface gr·fica com os estados de cada processo ============================================
-        if (filaAptos.size() > 0) {
-            for (int i = 0; i < filaAptos.size(); i++) {
-                cout << "Processo " << filaAptos[i].pid << " estado APTO" << endl;
-            }
-        }
-        if (processador.size() > 0) {
-            cout << "Processo " << processador[0].pid << " estado EXECUTANDO" << endl;
-        }
-        if (filaHD.size() > 0) {
-            for (int i = 0; i < filaHD.size(); i++) {
-                cout << "Processo " << filaHD[i].pid << " estado BLOQUEADO usando HD" << endl;
-            }
-        }
-        if (filaVideo.size() > 0) {
-            for (int i = 0; i < filaVideo.size(); i++) {
-                cout << "Processo " << filaVideo[i].pid << " estado BLOQUEADO usando Video" << endl;
-            }
-        }
-        if (filaImpressora.size() > 0) {
-            for (int i = 0; i < filaImpressora.size(); i++) {
-                cout << "Processo " << filaImpressora[i].pid << " estado BLOQUEADO usando Impressora" << endl;
-            }
-        }
-        if (listaDestruidos.size() > 0) {
-            for (int i = 0; i < listaDestruidos.size(); i++) {
-                cout << "Processo " << listaDestruidos[i].pid << " estado DESTRUIDO" << endl;
-            }
-        }
-
-        numeroTotalDeCiclos++;
-        system("cls");
-        Sleep(tempoEspera * 100);
-    } //======= Final do laÁo do simulador ===================================================================================
-
-
-    //========= LaÁo para pegar informaÁıes para o relatÛrio final =============================================================================================
-
+void montarInformacoesRelatorio() {
     for (int i = 0; i < listaDestruidos.size(); i++) {
         if (listaDestruidos[i].passouPorCriacao == true) {
             contadorEstadoCriacao++;
@@ -247,11 +84,11 @@ void simulador(int numeroMaximoProcessos, int tempoEspera) {
             contadorEstadoDestruido++;
         }
         contadorTempoEsperaFilaAptos = contadorTempoEsperaFilaAptos + listaDestruidos[i].numeroCiclosNaFilaAptos;
-        contadorTempoExecucaoProcesso = contadorTempoExecucaoProcesso + (listaDestruidos[i].numeroCiclosTotal + listaDestruidos[i].numeroCiclosBloqueadoTotal);
+        contadorTempoExecucaoProcesso = contadorTempoExecucaoProcesso + (listaDestruidos[i].numeroCiclosTotal + listaDestruidos[i].numeroCiclosBloqueadoTotal + listaDestruidos[i].numeroCiclosNaFilaAptos);
     }
+}
 
-    system("cls");
-    //======================= RelatÛrio final ===================================================================================================
+void imprimirRelatorioFinal() {
     cout << "Numero total de processos criados: " << contadorDeProcessos << endl;;
     cout << "Numero total de ciclos para atender todos os processos: " << numeroTotalDeCiclos << endl;
     cout << "Numero de ciclos medio por processo: " << numeroTotalDeCiclos/contadorDeProcessos << endl;
@@ -262,6 +99,171 @@ void simulador(int numeroMaximoProcessos, int tempoEspera) {
     cout << "Numero de processos que passaram por Destruicao: " << contadorEstadoDestruido << endl;
     cout << "Tempo medio de espera na fila de aptos: " << contadorTempoEsperaFilaAptos/contadorDeProcessos << endl;
     cout << "Numero de vezes que os processos foram retirados do processador e devolvidos para aptos: " << contadorDevolvidosParaAptos << endl;
+}
+
+void simulador(int numeroMaximoProcessos, int tempoEspera) {
+    while (true) {
+
+        int chanceNovoProcesso = rand() % 100;
+        if (((chanceNovoProcesso > 0) && (chanceNovoProcesso <= 20)) && (contadorDeProcessos < numeroMaximoProcessos)) {
+            criarProcesso();
+        }
+
+        //===== Contador de ciclos na fila de Aptos ==========================
+        if (filaAptos.size() > 0) {
+            for (int i = 0; i < filaAptos.size(); i++) {
+                filaAptos[i].numeroCiclosNaFilaAptos++;
+            }
+        }
+
+        //===== Finaliza√ß√£o da execu√ß√£o do simulador ==========================
+        if (listaDestruidos.size() == numeroMaximoProcessos) {
+            break;
+        }
+
+        //===== Insere o primeiro da fila de Aptos para o processador =======================
+        if ((filaAptos.size() > 0) && (processador.size() == 0)) {
+            filaAptos[0].passouPorApto = true;
+            processador.push_back(filaAptos.front());
+            filaAptos.erase(filaAptos.begin());
+            processador[0].estado = execucao;
+            processador[0].numeroCiclosPermitidosNoProcessador = 50;
+            processador[0].passouPorExecucao = true;
+        }
+
+        //===== Destruicao do processo caso ele tenha chegado ao seu fim ====
+        if ((processador.size() > 0) && (processador[0].numeroCiclos == 0)) {
+            processador[0].estado = destruicao;
+            processador[0].passouPorDestruido = true;
+            listaDestruidos.push_back(processador.front());
+            processador.erase(processador.begin());
+        }
+
+        //===== Processador ======================================================================================================================
+        if (processador.size() > 0) {
+            int chanceES = rand() % 100;
+            int dispositivo = rand() % 3;
+
+            if (chanceES == 1) {
+                processador[0].estado = bloqueado;
+                if (dispositivo == HD) {
+                    processador[0].numeroCiclosBloqueado = 200 + (rand() % 100);
+                    processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
+                    filaHD.push_back(processador.front());
+                    processador.erase(processador.begin());
+                } else {
+                    if (dispositivo == video) {
+                        processador[0].numeroCiclosBloqueado = 100 + (rand() % 100);
+                        processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
+                        filaVideo.push_back(processador.front());
+                        processador.erase(processador.begin());
+                    } else {
+                        processador[0].numeroCiclosBloqueado = 500 + (rand() % 100);
+                        processador[0].numeroCiclosBloqueadoTotal = processador[0].numeroCiclosBloqueadoTotal + processador[0].numeroCiclosBloqueado;
+                        filaImpressora.push_back(processador.front());
+                        processador.erase(processador.begin());
+                    }
+                }
+            }
+
+            processador[0].numeroCiclos--;
+            processador[0].numeroCiclosPermitidosNoProcessador--;
+        }
+
+        //===== Fila da requisi√ß√£o do Video ==============================================================================
+        if (filaVideo.size() > 0) {
+            if (filaVideo[0].numeroCiclosBloqueado == 0) {
+                filaVideo[0].passouPorBloqueado = true;
+                filaAptos.push_back(filaVideo.front());
+                filaVideo.erase(filaVideo.begin());
+            } else {
+                filaVideo[0].numeroCiclosBloqueado--;
+            }
+        }
+
+        //===== Fila da requisi√ß√£o da Impressora ===================================================================================
+        if (filaImpressora.size() > 0) {
+            if (filaImpressora[0].numeroCiclosBloqueado == 0) {
+                filaImpressora[0].passouPorBloqueado = true;
+                filaAptos.push_back(filaImpressora.front());
+                filaImpressora.erase(filaImpressora.begin());
+            } else {
+                filaImpressora[0].numeroCiclosBloqueado--;
+            }
+        }
+
+        //===== Fila da requisi√ß√£o do HD ============================================================================
+        if (filaHD.size() > 0) {
+            if (filaHD[0].numeroCiclosBloqueado == 0) {
+                filaHD[0].passouPorBloqueado = true;
+                filaAptos.push_back(filaHD.front());
+                filaHD.erase(filaHD.begin());
+            } else {
+                filaHD[0].numeroCiclosBloqueado--;
+            }
+        }
+
+        //===== Processador devolve para fila de Aptos caso o processo tenha utilizado seus 50 ciclos sem interrup√ß√µes =====
+        if ((processador.size() > 0) && (processador[0].numeroCiclosPermitidosNoProcessador == 0)) {
+            processador[0].estado = apto;
+            contadorDevolvidosParaAptos++;
+            filaAptos.push_back(processador.front());
+            processador.erase(processador.begin());
+            processador.clear();
+        }
+
+        //===== Interface gr√°fica com os estados de cada processo ============================================
+        if (filaAptos.size() > 0) {
+            for (int i = 0; i < filaAptos.size(); i++) {
+                cout << "Processo " << filaAptos[i].pid << " estado APTO na posicao " << i+1 << endl;
+            }
+        }
+        if (processador.size() > 0) {
+            cout << "Processo " << processador[0].pid << " estado EXECUTANDO" << endl;
+        }
+        if (filaHD.size() > 0) {
+            for (int i = 0; i < filaHD.size(); i++) {
+                if (i == 0) {
+                    cout << "Processo " << filaHD[i].pid << " estado BLOQUEADO usando HD" << endl;
+                } else {
+                    cout << "Processo " << filaHD[i].pid << " estado BLOQUEADO esperando na fila de HD na posicao " << i+1 << endl;
+                }
+            }
+        }
+        if (filaVideo.size() > 0) {
+            for (int i = 0; i < filaVideo.size(); i++) {
+                if (i == 0) {
+                    cout << "Processo " << filaVideo[i].pid << " estado BLOQUEADO usando Video" << endl;
+                } else {
+                    cout << "Processo " << filaVideo[i].pid << " estado BLOQUEADO esperando na fila de Video na posicao " << i+1 << endl;
+                }
+            }
+        }
+        if (filaImpressora.size() > 0) {
+            for (int i = 0; i < filaImpressora.size(); i++) {
+                if (i == 0) {
+                    cout << "Processo " << filaImpressora[i].pid << " estado BLOQUEADO usando Impressora" << endl;
+                } else {
+                    cout << "Processo " << filaImpressora[i].pid << " estado BLOQUEADO esperando na fila de Impressora na posicao " << i+1 << endl;
+                }
+            }
+        }
+        if (listaDestruidos.size() > 0) {
+            for (int i = 0; i < listaDestruidos.size(); i++) {
+                cout << "Processo " << listaDestruidos[i].pid << " estado DESTRUIDO" << endl;
+            }
+        }
+
+        numeroTotalDeCiclos++;
+        system("cls");
+        Sleep(tempoEspera * 100);
+    } //======= Final do la√ßo do simulador ===================================================================================
+
+    montarInformacoesRelatorio();
+
+    system("cls");
+
+    imprimirRelatorioFinal();
 }
 
 int main(void){
